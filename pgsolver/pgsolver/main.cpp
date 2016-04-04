@@ -72,7 +72,11 @@ public:
         inj.push_back(other);
         mutex.unlock();
     }
-    
+
+    void clear_adj(){
+        adj.clear();
+    }
+
 };
 
 class Graph {
@@ -87,6 +91,9 @@ public:
         return nodes[n];
     }
     void addNode(int node, int priority, int player) {
+        if(nodes[node].get_adj().size()!=0){
+            nodes[node].clear_adj();
+        }
         priorityMap[priority].push_back(node);
         nodes[node].set_priority(priority);
         nodes[node].set_player(player);
@@ -152,11 +159,13 @@ void add_node_string(Graph *G, std::string line, std::mutex *gLock) {
     int node = std::atoi(x[0].c_str());
     gLock->lock();
     G->addNode(node, std::atoi(x[1].c_str()), std::atoi(x[2].c_str()));
-    gLock->unlock();
+    
+    
     edges = split(x[3], ',');
     for (const auto& x : edges) {
         G->addEdge(node, atoi(x.c_str()));
     }
+    gLock->unlock();
     
 }
 
@@ -176,12 +185,14 @@ init_graph_from_file(std::string argf) {
     if (first.compare("parity") > -1) {
         std::vector<std::string> y;
         y = split(first, ' ');
+        //After the we parity we have the number of node
         numNodes = atoi(y[1].substr(0, y[1].size()-1).c_str());
     } else {
         throw "Invalid file Passed as argument.";
     }
+    //Graph creation
     Graph G(numNodes + 1);
-    //Mutex pour eviter de se marcher dessus pendant le parsing
+    //Mutex pour eviter de se marcher dessus pendant le parsing, parsing en parallelle du coup.
     std::mutex gLock;
     std::vector<std::future<void>> results;
     while (std::getline(infile, line)) {
