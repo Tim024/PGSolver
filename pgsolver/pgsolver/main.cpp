@@ -78,7 +78,6 @@ public:
         nodes[node].set_player(player);
     }
     void addEdge(int origin, int destination) {
-        std::cout << "edge from "<<origin<<" to "<<destination<<std::endl;
         nodes[origin].add_adj(destination);
         nodes[destination].add_inj(origin);
     }
