@@ -11,6 +11,7 @@
 #include <sstream>
 #include <map>
 #include <vector>
+#include <list>
 
 class Node {
 private:
@@ -18,22 +19,41 @@ private:
     std::vector<int> inj;
     int priority;
     int player;
+    int id;
 public:
     std::mutex mutex;
     Node() {
         priority = -1;
         player = -1;
+        id = -1;
     }
+    
+    Node(const Node& n)
+    {
+        priority = n.get_priority();
+        player = n.get_player();
+        id = n.get_id();
+
+    }
+
+    Node& operator=(Node& n)
+    {
+        Node m(n);
+        return m;
+    }
+    void set_id(int j){id =j;}
+
     void set_priority(int pr) {
         priority = pr;
     }
     void set_player(int pl) {
         player = pl;
     }
-    int const get_priority() {
+    int get_id() const {return id;}
+    int get_priority() const {
         return priority;
     }
-    int const get_player() {
+    int get_player() const {
         return player;
     }
     std::vector<int> const &get_adj() {
@@ -52,6 +72,7 @@ public:
         inj.push_back(other);
         mutex.unlock();
     }
+    
 };
 
 class Graph {
@@ -69,6 +90,7 @@ public:
         priorityMap[priority].push_back(node);
         nodes[node].set_priority(priority);
         nodes[node].set_player(player);
+        nodes[node].set_id(node);
     }
     void addEdge(int origin, int destination) {
         nodes[origin].add_adj(destination);
@@ -85,214 +107,6 @@ public:
     }
 };
 
-/*
-int
-max_priority(Graph& G, std::vector<bool>& removed) {
-    int max = -1;
-    for (long v = 0; v < G.size(); v++) {
-        if (!removed[v] && G.get(v).get_priority() > max) {
-            max = G.get(v).get_priority();
-        }
-    }
-    return max;
-}
-
-std::vector<int>
-async_attr(Graph* G, std::vector<int>* tmpMap, int inode, std::vector<bool>* removed, int i){
-    std::vector<int> A;
-    Node* node = &G->get(inode);
-    for (const int v0 : node->get_inj()) {
-        if (!(*removed)[v0]) {
-            G->get(v0).mutex.lock();
-            auto flag = G->get(v0).get_player() == i;
-            if ((*tmpMap)[v0] == -1) {
-                if (flag) {
-                    A.push_back(v0);
-                    (*tmpMap)[v0] = 0;
-                } else {
-                    int adj_counter = -1;
-                    for (const int x : G->get(v0).get_adj()) {
-                        if (!(*removed)[x]) {
-                            adj_counter += 1;
-                        }
-                    }
-                    (*tmpMap)[v0] += adj_counter;
-                    if (adj_counter == 0) {
-                        A.push_back(v0);
-                    }
-                }
-            } else if (!flag and (*tmpMap)[v0] > 0) {
-                (*tmpMap)[v0] -= 1;
-                if ((*tmpMap)[v0] == 0) {
-                    A.push_back(v0);
-                }
-            }
-            G->get(v0).mutex.unlock();
-        }
-    }
-    return A;
-}
-
-std::vector<int>
-concurrent_attr(Graph& G, std::vector<bool>& removed, std::vector<int>& A, int i) {
-    std::vector<int> tmpMap(G.size(), -1);
-    std::vector<bool> check(G.size());
-    for (const int x : A) {
-        tmpMap[x] = 0;
-        check[x] = true;
-    }
-    
-    int index = 0;
-    std::vector<std::future<std::vector<int>>> results;
-    while (index < A.size()) {
-        while (index < A.size()) {
-            results.push_back(std::async(async_attr, &G, &tmpMap, A[index], &removed, i));
-            index += 1;
-        }
-        for (int i = 0; i < results.size(); i++) {
-            auto res = results[i].get();
-            for (auto i : res) {
-                if (!check[i]) {
-                    check[i] = true;
-                    A.push_back(i);
-                }
-            }
-        }
-        results.clear();
-    }
-    
-    return A;
-}
-
-std::vector<int>
-attr(Graph& G, std::vector<bool>& removed, std::vector<int>& A, int i) {
-    std::vector<int> tmpMap(G.size(), -1);
-    for (const int x : A) {
-        tmpMap[x] = 0;
-    }
-    auto index = 0;
-    while (index < A.size()) {
-        for (const int v0 : G.get(A[index]).get_inj()) {
-            if (!removed[v0]) {
-                auto flag = G.get(v0).get_player() == i;
-                if (tmpMap[v0] == -1) {
-                    if (flag) {
-                        A.push_back(v0);
-                        tmpMap[v0] = 0;
-                    } else {
-                        int adj_counter = -1;
-                        for (const int x : G.get(v0).get_adj()) {
-                            if (!removed[x]) {
-                                adj_counter += 1;
-                            }
-                        }
-                        tmpMap[v0] = adj_counter;
-                        if (adj_counter == 0) {
-                            A.push_back(v0);
-                        }
-                    }
-                } else if (!flag and tmpMap[v0] > 0) {
-                    tmpMap[v0] -= 1;
-                    if (tmpMap[v0] == 0) {
-                        A.push_back(v0);
-                    }
-                }
-            }
-        }
-        index += 1;
-    }
-    return A;
-}
-
-std::array<std::vector<int>, 2>
-win_concurrent(Graph& G, std::vector<bool>& removed) {
-    std::array<std::vector<int>, 2> W;
-    auto d = max_priority(G, removed);
-    if (d > -1) {
-        std::vector<int> U;
-        for (const int x : G.get_priority_map()[d]) {
-            if (!removed[x]) {
-                U.push_back(x);
-            }
-        }
-        int p = d % 2;
-        int j = 1 - p;
-        std::array<std::vector<int>, 2> W1;
-        auto A = concurrent_attr(G, removed, U, p);
-        std::vector<bool> removed1(removed);
-        for (const int x : A) {
-            removed1[x] = true;
-        }
-        W1 = win_concurrent(G, removed1);
-        if (W1[j].size() == 0) {
-            std::merge(W1[p].begin(), W1[p].end(), A.begin(), A.end(),
-                       std::back_inserter(W[p]));
-        } else {
-            auto B = concurrent_attr(G, removed, W1[j], j);
-            std::vector<bool> removed2(removed);
-            for (const int x : B) {
-                removed2[x] = true;
-            }
-            W1 = win_concurrent(G, removed2);
-            W[p] = W1[p];
-            std::merge(W1[j].begin(), W1[j].end(), B.begin(), B.end(),
-                       std::back_inserter(W[j]));
-        }
-    }
-    return W;
-}
-
-std::array<std::vector<int>, 2>
-win_improved(Graph& G, std::vector<bool>& removed) {
-    std::array<std::vector<int>, 2> W;
-    auto d = max_priority(G, removed);
-    if (d > -1) {
-        std::vector<int> U;
-        for (const int x : G.get_priority_map()[d]) {
-            if (!removed[x]) {
-                U.push_back(x);
-            }
-        }
-        int p = d % 2;
-        int j = 1 - p;
-        std::array<std::vector<int>, 2> W1;
-        auto A = attr(G, removed, U, p);
-        std::vector<bool> removed1(removed);
-        for (const int x : A) {
-            removed1[x] = true;
-        }
-        W1 = win_improved(G, removed1);
-        if (W1[j].size() == 0) {
-            std::merge(W1[p].begin(), W1[p].end(), A.begin(), A.end(),
-                       std::back_inserter(W[p]));
-        } else {
-            auto B = attr(G, removed, W1[j], j);
-            std::vector<bool> removed2(removed);
-            for (const int x : B) {
-                removed2[x] = true;
-            }
-            W1 = win_improved(G, removed2);
-            W[p] = W1[p];
-            std::merge(W1[j].begin(), W1[j].end(), B.begin(), B.end(),
-                       std::back_inserter(W[j]));
-        }
-    }
-    return W;
-}
-
-std::array<std::vector<int>, 2>
-win(Graph& G, std::function<std::array<std::vector<int>, 2>(Graph& G, std::vector<bool>&)> f) {
-    std::chrono::time_point<std::chrono::system_clock> start, end;
-    start = std::chrono::system_clock::now();
-    auto removed = std::vector<bool>(G.size(), false);
-    auto res = f(G, removed);
-    end = std::chrono::system_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end-start;
-    printf("Solved in ........... %fs \n", elapsed_seconds.count());
-    return res;
-}
-
-*/
 
 
 void
@@ -383,38 +197,345 @@ init_graph_from_file(std::string argf) {
     return G;
 }
 
+class Measure
+{
+private: 
+    static bool initialized;
+    std::map<int, int> mes;
+    bool tau;
+    static int size;
+    static Measure* max_mes;
+
+public:
+    Measure():tau(false)
+    {   
+        for(int i = 0; i < size ; i ++)
+        {
+            mes[i] = 0;
+        }
+        
+    }
+    Measure(bool t)
+    {
+        tau = t;
+    }
+    Measure(const Measure& m)
+    {
+        mes = m.get_mes();
+        tau = m.get_tau();
+    }
+
+    void set_tau(bool t){tau = t;}
+    bool get_tau()const{return tau;}
+    void addAt(int i, int j)
+    {
+        mes.at(i) += j;
+    }
+
+    bool eq(Measure& m)
+    {
+        if(m.get_tau() != this->tau)
+        {
+            return false;
+        }
+        if(m.get_tau() == this->tau && m.get_tau())
+        {
+            return true;
+        }
+        for(int i = 0; i < mes.size(); i++ )
+        {
+            if(mes[i] != m.get_mes()[i])
+                return false;
+
+        }
+        
+        return true;
+    }
+    static Measure* getMax()
+    {
+        if(initialized)
+            return max_mes;
+        throw std::exception();
+    }
+
+    static void init(std::map<int, std::vector<int> >& prio_map)
+    {
+        auto it = prio_map.end();
+        it--;
+        size = it->first + 1;
+        
+        std::list<int> comp;
+        for(int i = 0 ; i < size; i++)
+        {
+            if(i%2==0)
+            {
+                comp.push_back(0);
+                continue;   
+            }
+            if(prio_map.find(i)!= prio_map.end())
+                comp.push_back(prio_map.at(i).size());
+            else
+                comp.push_back(0);
+        }
+        max_mes = new Measure(comp);
+        initialized = true;
+    }
+   
+    Measure(std::list<int> m)
+    {
+        tau = false;
+        int i = 0;
+        for(auto it = m.begin(); it != m.end(); it++)
+        {
+            mes.insert(std::pair<int,int>(i, *it));
+            i++;
+        }
+    }
+    bool less(Measure& m1, int prio)
+    {
+        if(this->tau == true && m1.get_tau() == false)
+            return false;
+        if(m1.get_tau() == true)
+            return true;
+
+        if(m1.getSize() != getSize())
+        {
+            std::cout << "Should not happen, measure of different sizes"<<std::endl;
+            return false;
+        }
+            
+        for(int i = 0; i <= prio; i++ )
+        {
+            if(getmAt(i) > m1.getmAt(i))
+                return false;
+        }
+        return true;
+    }
+    int getmAt(int i)
+    {
+        return mes.at(i);
+    }
+
+    std::map<int,int> get_mes()const{return mes;}
+
+    static int getSize(){return Measure::size;}
+
+    std::string toString() const
+    {
+        if(tau)
+            return " T ";
+        std::string result = "(";
+        for(auto n = mes.begin(); n != mes.end(); n++)
+        {
+            result = result + std::to_string(n->second) + ",";
+        }
+        result = result + ") ";
+        return result;
+    }
+
+};
+
+void display(std::map<int,Measure>& sig)
+{
+    for(auto it = sig.begin(); it != sig.end(); it++)
+    {
+        std::cout<<it->first<<" | "<<it->second.toString() <<std::endl;
+    }
+    std::cout<<std::endl;
+}
+
+
+
+Measure* prog(Node& v, Node& w, std::map<int,Measure>& sig)
+{
+  
+    if(v.get_priority()%2 == 0)
+    {
+
+        return new Measure(sig[w.get_id()]);
+    }
+    else
+    {
+        if(sig[w.get_id()].less(*Measure::getMax(), v.get_priority()))
+        {
+            bool added = false;
+            int j = v.get_priority();
+            Measure* m = new Measure(sig[w.get_id()]);
+            while(!added && j >= 0)
+            {
+                if(m->getmAt(j) < Measure::getMax()->getmAt(j))
+                {
+                    m->addAt(j,1);
+                    added = true;
+                }
+                j--;
+
+            }
+            if(!added)
+                return new Measure(true);
+            return new Measure(*m);
+        }
+            
+        
+        return new Measure(true);
+       
+    }
+    
+
+}
+
+void lift(Node& v, std::map<int,Measure>& sig, Graph& g)
+{
+    //display(sig);
+    if(sig.at(v.get_id()).get_tau() )
+        return;
+    if(v.get_player() == 0)
+    {
+        Measure* min = Measure::getMax();
+        bool assigned = false;
+        for(auto n : v.get_adj())
+        {
+            Node w = g.get(n);
+            Measure* p = prog(v,w, sig);
+            if(p->get_tau())
+                sig.at(w.get_id()).set_tau(true);
+
+            if(p->less(*min, Measure::getSize()-1))
+            {
+                min = p;
+                assigned = true;
+            } 
+        }
+        if(!assigned)
+            sig.at(v.get_id()).set_tau(true);
+        else
+        {
+            sig.at(v.get_id()) = *min;
+        }
+            
+    }
+    else
+    {
+        Measure* max = new Measure(std::list<int>(Measure::getSize(), 0));
+        bool assigned = false;
+        for(auto n : v.get_adj())
+        {
+            Node w = g.get(n);
+            if(sig.at(w.get_id()).eq(*(Measure::getMax())))
+            {
+                sig.at(v.get_id()).set_tau(true);
+                sig.at(w.get_id()).set_tau(true);
+                assigned = false;
+                max = &sig.at(w.get_id());
+                break;
+            }
+            
+            Measure* p = prog(v,w, sig);
+            if(p->get_tau()){
+                sig.at(w.get_id()).set_tau(true);
+                sig.at(v.get_id()).set_tau(true);
+                assigned = false;
+                break;
+            }
+
+            if(max->less(*p, Measure::getSize()-1))
+            {
+                max = p;
+
+                assigned = true;
+            }
+
+        }
+        if(assigned)
+        {
+
+            sig.at(v.get_id()) = *max;
+        }
+    }
+}
+
+bool comp(std::map<int,Measure>& sig1, std::map<int,Measure>& sig2)
+{
+    if(sig1.size() != sig2.size())
+    {
+        return false;
+    }
+    auto it1 = sig1.begin();
+    auto it2 = sig2.begin();
+    while(it1 != sig1.end() && it2 != sig2.end())
+    {
+        if(it1->first != it2->first)
+        {
+            return false;
+        }
+        
+        if(!(it1->second).eq(it2->second))
+        {
+            return false;
+        }
+        
+        it1++;
+        it2++;
+    }
+    return true;
+}
+
+
+void spm(Graph& g)
+{
+    Measure::init(g.get_priority_map());
+    std::map<int,Measure> sig;
+
+    
+    for(auto n : g.getNodes())
+    {
+
+        Measure i(std::list<int>(Measure::getSize(),0));
+        sig[n.get_id()] = i;
+    }
+    std::map<int,Measure> prev_sig;
+    while(!comp(prev_sig,sig))
+    {
+
+        prev_sig = sig;
+        //@todo add other lifting techniques here
+        for(Node& n : g.getNodes())
+            lift(n, sig, g);
+        //display(sig);
+        //display(prev_sig);
+    }
+    bool sol = false;
+    for(auto it = sig.begin(); it != sig.end(); it++)
+    {
+        if(!(it->second).get_tau())
+        {
+            std::cout<<"Solution for even from node "<<it->first<<std::endl;
+            sol = true;
+        }
+    }
+    if(!sol)
+    {
+        std::cout<<"No solutions for player even"<<std::endl;
+    }
+
+}
+
+
+bool Measure::initialized = false;
+int Measure::size = 0;
+Measure* Measure::max_mes = nullptr;
+
 int
 main(int argc, const char * argv[]) {
-    
+
     std::string file = argv[1];
     
     std::cout << "Parsing from ........ " << file << std::endl;
     auto G = init_graph_from_file(file);
     
     display_graph(&G);
-    /*
-    std::array<std::vector<int>, 2> solutions;
     
-    std::cout << "\nSolution for Player 0:" << std::endl;
-    std::sort(solutions[0].begin(), solutions[0].end());
-    std::sort(solutions[1].begin(), solutions[1].end());
-    std::cout << "{";
-    for (auto &v : solutions[0]) {
-        if (v == solutions[0][solutions[0].size()-1]) {
-            printf("%d}", v);
-        } else {
-            printf("%d, ", v);
-        }
-    }
-    printf("\n\nSolution for Player 1:\n{");
-    for (auto &v : solutions[1]) {
-        if (v == solutions[1][solutions[1].size()-1]) {
-            printf("%d}", v);
-        } else {
-            printf("%d, ", v);
-        }
-    }
-    printf("\n");
-    */
+    spm(G);
+    
     return 0;
 }
