@@ -52,9 +52,8 @@ public:
         inj.push_back(other);
         mutex.unlock();
     }
-    void clear_adj_inj(){
+    void clear_adj(){
         adj.clear();
-        inj.clear();
     }
 };
 
@@ -70,8 +69,8 @@ public:
         return nodes[n];
     }
     void addNode(int node, int priority, int player) {
-        if(nodes[node].get_adj().size()!=0 || nodes[node].get_inj().size()!=0){
-            nodes[node].clear_adj_inj();
+        if(nodes[node].get_adj().size()!=0){
+            nodes[node].clear_adj();
         }
         priorityMap[priority].push_back(node);
         nodes[node].set_priority(priority);
