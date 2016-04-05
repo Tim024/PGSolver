@@ -39,10 +39,14 @@ public:
         set_inj(n.get_inj());
     }
 
-    Node& operator=(Node& n)
+    Node& operator=(const Node& n)
     {
-        Node m(n);
-        return m;
+        this->set_id(n.get_id());
+        this->set_player(n.get_player());
+        this->set_adj(n.get_adj());
+        this->set_priority(n.get_priority());
+        this->set_inj(n.get_inj());
+        return *this;
     }
     void set_id(int j){id =j;}
 
@@ -161,18 +165,18 @@ split(const std::string &s, char delim) {
 }
 
 void add_node_string(Graph *G, std::string line, std::mutex *gLock) {
+    
     std::vector<std::string> x, edges;
     x= split( line , ' ');
     int node = std::atoi(x[0].c_str());
     gLock->lock();
     G->addNode(node, std::atoi(x[1].c_str()), std::atoi(x[2].c_str()));
-    
-    
     edges = split(x[3], ',');
     for (const auto& x : edges) {
         G->addEdge(node, atoi(x.c_str()));
     }
     gLock->unlock();
+    
     
 }
 
@@ -501,26 +505,36 @@ bool comp(std::map<int,Measure>& sig1, std::map<int,Measure>& sig2)
 
 void swap(Node& n1, Node& n2){
     Node n(n1);
-    n1 = * new Node(n2);
-    n2 = * new Node(n);
+    n1 = n2;
+    n2 = n;
 }
 
 
 // Fisher-Yates shuffle
 void shuffleNode(std::vector<Node>& v){
     for ( int i = 0; i < v.size(); i ++){
-        
-        int r = i + rand()% (v.size()-i);
-        std::cout << "Swap " << i <<" and "<< r <<std::endl;
+        std::srand(std::time(0));
+        int r = i + std::rand() % (v.size()-i);
         
         //std::iter_swap(v.begin()+i, v.begin()+r);
         swap(v[i],v[r]);
     }
 }
 
+bool mostIncoming(Node n1, Node n2){return n1.get_inj().size()>n2.get_inj().size();}
+bool mostOutgoing(Node n1, Node n2){return n1.get_adj().size()>n2.get_adj().size();}
+
+void sortMostIncomingEdges(std::vector<Node>& v){
+    std::sort (v.begin(), v.end(), mostIncoming);
+}
+void sortMostOutgoingEdges(std::vector<Node>& v){
+    std::sort (v.begin(), v.end(), mostOutgoing);
+}
+
 
 void spm(Graph& g, int choice)
 {
+    auto start = std::chrono::system_clock::now();
     Measure::init(g.get_priority_map());
     std::map<int,Measure> sig;
 
@@ -535,26 +549,32 @@ void spm(Graph& g, int choice)
     
     
     std::vector<Node> myRandomNodes = g.getNodes();
+    std::vector<Node> mostIncomingEdges = g.getNodes();
+    std::vector<Node> mostOutgoingEdges = g.getNodes();
+    sortMostIncomingEdges(mostIncomingEdges);
+    sortMostOutgoingEdges(mostOutgoingEdges);
     
-    std::cout << "Before : " ;
+    /*std::cout << "Before : " ;
     for ( int i = 0; i < myRandomNodes.size(); i ++){
         std::cout << (myRandomNodes[i]).get_id() << " ";
     }
-    std::cout << std::endl;
+    std::cout << std::endl;*/
     
     shuffleNode(myRandomNodes);
     //std::random_shuffle(myRandomNodes.begin(), myRandomNodes.end());
     
     
-    std::cout << "After : " ;
+    /*std::cout << "After : " ;
     for ( int i = 0; i < myRandomNodes.size(); i ++){
         std::cout << (myRandomNodes[i]).get_id() << " ";
     }
-    std::cout << std::endl;
+    std::cout << std::endl;*/
     
+    int iteration_counter = 0 ;
+    std::cout<<"Strategie: "<<choice<<std::endl;
     while(!comp(prev_sig,sig))
     {
-
+        iteration_counter ++ ;
         prev_sig = sig;
         
         
@@ -562,7 +582,7 @@ void spm(Graph& g, int choice)
             case 1:
             {
                 for(Node& n : g.getNodes()){
-                    std::cout << "Node:" << n.get_id() << std::endl;
+                    //std::cout << "Node:" << n.get_id() << std::endl;
                     lift(n, sig, g);
                 }
                 break;
@@ -570,7 +590,7 @@ void spm(Graph& g, int choice)
             case 2:
             {
                 for(Node n : myRandomNodes){
-                    std::cout << "Node:" << (n).get_id() << std::endl;
+                    //std::cout << "Node:" << (n).get_id() << std::endl;
                     lift(n, sig, g);
                 }
                 break;
@@ -584,6 +604,13 @@ void spm(Graph& g, int choice)
         //display(sig);
         //display(prev_sig);
     }
+    
+    std::cout<<"Number of iteration before convergence: "<<iteration_counter<<std::endl;
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end-start;
+    std::cout << "Calculated in " << elapsed_seconds.count() << "s" << std::endl;
+    
+    
     bool sol = false;
     for(auto it = sig.begin(); it != sig.end(); it++)
     {
@@ -608,7 +635,8 @@ int choose_strategy(){
     std::cout << "----------------------------------" << std::endl;
     std::cout << "Choose your lifting strategy : " << std::endl;
     std::cout << "1: input order,   2: random order " << std::endl;
-    std::cout << "3: , 4: " << std::endl;
+    std::cout << "3: most outgoing edges first, 4: " << std::endl;
+    std::cout << "most incoming edges first" << std::endl;
     
     int myNumber = 0;
     std::string input = "";
@@ -635,19 +663,30 @@ Measure* Measure::max_mes = nullptr;
 
 int
 main(int argc, const char * argv[]) {
-
-    std::string file = argv[1];
     
-    
-    
-    std::cout << "File: " << file << std::endl;
-    auto G = init_graph_from_file(file);
+    if(argc==2){
+        std::string file = argv[1];
+        
+        std::cout << "File: " << file << std::endl;
+        auto G = init_graph_from_file(file);
+        int choice = choose_strategy();
+        spm(G,choice);
+    } else if (argc==3){
+        std::string file = argv[1];
+        
+        
+        
+        std::cout << "File: " << file << std::endl;
+        auto G = init_graph_from_file(file);
+        
+        spm(G,atoi(argv[2]));
+    } else {
+        std::cout << "Not enough arguments" << std::endl;
+    }
     
     //display_graph(&G);
     
-    int choice = choose_strategy();
     
-    spm(G,choice);
     
     return 0;
 }
