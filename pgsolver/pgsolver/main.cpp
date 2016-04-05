@@ -188,7 +188,7 @@ init_graph_from_file(std::string argf) {
         //After the we parity we have the number of node
         numNodes = atoi(y[1].substr(0, y[1].size()-1).c_str());
     } else {
-        throw "Invalid file Passed as argument.";
+        throw "Invalid file.";
     }
     //Graph creation
     Graph G(numNodes + 1);
@@ -204,7 +204,7 @@ init_graph_from_file(std::string argf) {
     }
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end-start;
-    std::cout << "Parsed in ........... " << elapsed_seconds.count() << "s" << std::endl;
+    std::cout << "Parsed in " << elapsed_seconds.count() << "s" << std::endl;
     return G;
 }
 
@@ -492,7 +492,7 @@ bool comp(std::map<int,Measure>& sig1, std::map<int,Measure>& sig2)
 }
 
 
-void spm(Graph& g)
+void spm(Graph& g, int choice)
 {
     Measure::init(g.get_priority_map());
     std::map<int,Measure> sig;
@@ -510,6 +510,19 @@ void spm(Graph& g)
 
         prev_sig = sig;
         //@todo add other lifting techniques here
+        switch (choice) {
+            case 1:
+                std::cout << "1";
+                break;
+            case 2:
+                std::cout << "2";
+                break;
+            case 3:
+                std::cout << "3";
+                break;
+            case 4:
+                break;
+        }
         for(Node& n : g.getNodes())
             lift(n, sig, g);
         //display(sig);
@@ -531,6 +544,35 @@ void spm(Graph& g)
 
 }
 
+int choose_strategy(){
+    //returns an int between 1 and 4
+    //Strategy 1 : input order
+    //Strategy 2 : random order
+    //Strategy 3 : 0 to N order
+    //Strategy 4 :
+    std::cout << "----------------------------------" << std::endl;
+    std::cout << "Choose your lifting strategy : " << std::endl;
+    std::cout << "1: input order,   2: random order " << std::endl;
+    std::cout << "3: ordinal order, 4: " << std::endl;
+    
+    int myNumber = 0;
+    std::string input = "";
+    
+    while (true) {
+        getline(std::cin, input);
+        
+        // This code converts from string to number safely.
+        std::stringstream myStream(input);
+        if (myStream >> myNumber)
+            if(myNumber>=1 && myNumber <=4)
+                break;
+        std::cout << "Invalid number, please try again" << std::endl;
+    }
+    std::cout << "----------------------------------" << std::endl;
+    
+    return myNumber;
+}
+
 
 bool Measure::initialized = false;
 int Measure::size = 0;
@@ -541,12 +583,16 @@ main(int argc, const char * argv[]) {
 
     std::string file = argv[1];
     
-    std::cout << "Parsing from ........ " << file << std::endl;
+    
+    
+    std::cout << "File: " << file << std::endl;
     auto G = init_graph_from_file(file);
     
-    display_graph(&G);
+    //display_graph(&G);
     
-    spm(G);
+    int choice = choose_strategy();
+    
+    spm(G,choice);
     
     return 0;
 }
