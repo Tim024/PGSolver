@@ -678,8 +678,6 @@ main(int argc, const char * argv[]) {
     } else if (argc==3){
         std::string file = argv[1];
         
-        
-        
         std::cout << "File: " << file << std::endl;
         auto G = init_graph_from_file(file);
         
