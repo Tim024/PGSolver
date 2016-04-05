@@ -513,7 +513,7 @@ void swap(Node& n1, Node& n2){
 // Fisher-Yates shuffle
 void shuffleNode(std::vector<Node>& v){
     for ( int i = 0; i < v.size(); i ++){
-        std::srand(std::time(0));
+        std::srand((unsigned int) std::time(0));
         int r = i + std::rand() % (v.size()-i);
         
         //std::iter_swap(v.begin()+i, v.begin()+r);
@@ -596,8 +596,16 @@ void spm(Graph& g, int choice)
                 break;
             }
             case 3:
+                for(Node n : mostOutgoingEdges){
+                    std::cout << "Node:" << (n).get_id() << std::endl;
+                    lift(n, sig, g);
+                }
                 break;
             case 4:
+                for(Node n : mostIncomingEdges){
+                    std::cout << "Node:" << (n).get_id() << std::endl;
+                    lift(n, sig, g);
+                }
                 break;
         }
         
@@ -628,10 +636,6 @@ void spm(Graph& g, int choice)
 
 int choose_strategy(){
     //returns an int between 1 and 4
-    //Strategy 1 : input order
-    //Strategy 2 : random order
-    //Strategy 3 : 0 to N order
-    //Strategy 4 :
     std::cout << "----------------------------------" << std::endl;
     std::cout << "Choose your lifting strategy : " << std::endl;
     std::cout << "1: input order,   2: random order " << std::endl;
