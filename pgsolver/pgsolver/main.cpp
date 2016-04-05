@@ -12,6 +12,7 @@
 #include <map>
 #include <vector>
 #include <list>
+#include <random>       // std::default_random_engine
 
 class Node {
 private:
@@ -509,22 +510,34 @@ void spm(Graph& g, int choice)
     {
 
         prev_sig = sig;
-        //@todo add other lifting techniques here
+        
+        
+        std::vector<Node> myRandomNodes = g.getNodes();
+        
+        
         switch (choice) {
             case 1:
-                std::cout << "1";
+            {
+                for(Node& n : g.getNodes()){
+                    std::cout << "Node:" << n.get_id() << std::endl;
+                    lift(n, sig, g);
+                }
                 break;
+            }
             case 2:
-                std::cout << "2";
+            {
+                for(Node& n : myRandomNodes){
+                    std::cout << "Node:" << n.get_id() << std::endl;
+                    lift(n, sig, g);
+                }
                 break;
+            }
             case 3:
-                std::cout << "3";
                 break;
             case 4:
                 break;
         }
-        for(Node& n : g.getNodes())
-            lift(n, sig, g);
+        
         //display(sig);
         //display(prev_sig);
     }
@@ -553,7 +566,7 @@ int choose_strategy(){
     std::cout << "----------------------------------" << std::endl;
     std::cout << "Choose your lifting strategy : " << std::endl;
     std::cout << "1: input order,   2: random order " << std::endl;
-    std::cout << "3: ordinal order, 4: " << std::endl;
+    std::cout << "3: , 4: " << std::endl;
     
     int myNumber = 0;
     std::string input = "";
