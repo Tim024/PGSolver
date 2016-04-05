@@ -13,6 +13,7 @@
 #include <vector>
 #include <list>
 #include <random>       // std::default_random_engine
+#include <utility>
 
 class Node {
 private:
@@ -34,7 +35,8 @@ public:
         priority = n.get_priority();
         player = n.get_player();
         id = n.get_id();
-
+        set_adj(n.get_adj());
+        set_inj(n.get_inj());
     }
 
     Node& operator=(Node& n)
@@ -57,10 +59,10 @@ public:
     int get_player() const {
         return player;
     }
-    std::vector<int> const &get_adj() {
+    std::vector<int> const &get_adj() const {
         return adj;
     }
-    std::vector<int> const &get_inj() {
+    std::vector<int> const &get_inj() const {
         return inj;
     }
     void add_adj(int other) {
@@ -73,11 +75,15 @@ public:
         inj.push_back(other);
         mutex.unlock();
     }
-
+    void set_adj(const std::vector<int>& adj){
+        this->adj=adj;
+    }
+    void set_inj(const std::vector<int>& inj){
+        this->inj=inj;
+    }
     void clear_adj(){
         adj.clear();
     }
-
 };
 
 class Graph {
@@ -493,6 +499,26 @@ bool comp(std::map<int,Measure>& sig1, std::map<int,Measure>& sig2)
 }
 
 
+void swap(Node& n1, Node& n2){
+    Node n(n1);
+    n1 = * new Node(n2);
+    n2 = * new Node(n);
+}
+
+
+// Fisher-Yates shuffle
+void shuffleNode(std::vector<Node>& v){
+    for ( int i = 0; i < v.size(); i ++){
+        
+        int r = i + rand()% (v.size()-i);
+        std::cout << "Swap " << i <<" and "<< r <<std::endl;
+        
+        //std::iter_swap(v.begin()+i, v.begin()+r);
+        swap(v[i],v[r]);
+    }
+}
+
+
 void spm(Graph& g, int choice)
 {
     Measure::init(g.get_priority_map());
@@ -506,13 +532,30 @@ void spm(Graph& g, int choice)
         sig[n.get_id()] = i;
     }
     std::map<int,Measure> prev_sig;
+    
+    
+    std::vector<Node> myRandomNodes = g.getNodes();
+    
+    std::cout << "Before : " ;
+    for ( int i = 0; i < myRandomNodes.size(); i ++){
+        std::cout << (myRandomNodes[i]).get_id() << " ";
+    }
+    std::cout << std::endl;
+    
+    shuffleNode(myRandomNodes);
+    //std::random_shuffle(myRandomNodes.begin(), myRandomNodes.end());
+    
+    
+    std::cout << "After : " ;
+    for ( int i = 0; i < myRandomNodes.size(); i ++){
+        std::cout << (myRandomNodes[i]).get_id() << " ";
+    }
+    std::cout << std::endl;
+    
     while(!comp(prev_sig,sig))
     {
 
         prev_sig = sig;
-        
-        
-        std::vector<Node> myRandomNodes = g.getNodes();
         
         
         switch (choice) {
@@ -526,8 +569,8 @@ void spm(Graph& g, int choice)
             }
             case 2:
             {
-                for(Node& n : myRandomNodes){
-                    std::cout << "Node:" << n.get_id() << std::endl;
+                for(Node n : myRandomNodes){
+                    std::cout << "Node:" << (n).get_id() << std::endl;
                     lift(n, sig, g);
                 }
                 break;
@@ -554,7 +597,6 @@ void spm(Graph& g, int choice)
     {
         std::cout<<"No solutions for player even"<<std::endl;
     }
-
 }
 
 int choose_strategy(){
