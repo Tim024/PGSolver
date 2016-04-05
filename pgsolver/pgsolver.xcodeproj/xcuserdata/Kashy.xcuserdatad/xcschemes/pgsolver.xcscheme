@@ -64,7 +64,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "../Tests/testcase2.pg"
+            argument = "../Tests/wikipediaexample.pg"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

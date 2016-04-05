@@ -597,13 +597,13 @@ void spm(Graph& g, int choice)
             }
             case 3:
                 for(Node n : mostOutgoingEdges){
-                    std::cout << "Node:" << (n).get_id() << std::endl;
+                    //std::cout << "Node:" << (n).get_id() << std::endl;
                     lift(n, sig, g);
                 }
                 break;
             case 4:
                 for(Node n : mostIncomingEdges){
-                    std::cout << "Node:" << (n).get_id() << std::endl;
+                    //std::cout << "Node:" << (n).get_id() << std::endl;
                     lift(n, sig, g);
                 }
                 break;
