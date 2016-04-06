@@ -4,24 +4,24 @@
 //
 
 #include <array>
-#include <chrono>
-#include <fstream>
 #include <future>
-#include <iostream>
-#include <sstream>
+#include <chrono>
 #include <map>
+#include <iostream>
 #include <vector>
+#include <fstream>
+#include <sstream>
 #include <list>
 #include <random>       // std::default_random_engine
 #include <utility>
 
 class Node {
 private:
+    int player;
+    int priority;
+    int id;
     std::vector<int> adj;
     std::vector<int> inj;
-    int priority;
-    int player;
-    int id;
 public:
     std::mutex mutex;
     Node() {
@@ -69,14 +69,14 @@ public:
     std::vector<int> const &get_inj() const {
         return inj;
     }
-    void add_adj(int other) {
-        mutex.lock();
-        adj.push_back(other);
-        mutex.unlock();
-    }
     void add_inj(int other) {
         mutex.lock();
         inj.push_back(other);
+        mutex.unlock();
+    }
+    void add_adj(int other) {
+        mutex.lock();
+        adj.push_back(other);
         mutex.unlock();
     }
     void set_adj(const std::vector<int>& adj){
@@ -515,7 +515,6 @@ void shuffleNode(std::vector<Node>& v){
     for ( int i = 0; i < v.size(); i ++){
         std::srand((unsigned int) std::time(0));
         int r = i + std::rand() % (v.size()-i);
-        
         swap(v[i],v[r]);
     }
 }
@@ -653,7 +652,7 @@ int choose_strategy(){
         // This code converts from string to number safely.
         std::stringstream myStream(input);
         if (myStream >> myNumber)
-            if(myNumber>=1 && myNumber <=4)
+            if(myNumber>=1 && myNumber <=5)
                 break;
         std::cout << "Invalid number, please try again" << std::endl;
     }
@@ -675,8 +674,13 @@ main(int argc, const char * argv[]) {
         
         std::cout << "File: " << file << std::endl;
         auto G = init_graph_from_file(file);
-        int choice = choose_strategy();
-        spm(G,choice);
+
+        //int choice = choose_strategy();
+        //spm(G,choice);
+        for(int k = 1; k <= 4; k ++)
+            spm(G,k);
+        
+        
     } else if (argc==3){
         std::string file = argv[1];
         
