@@ -516,14 +516,16 @@ void shuffleNode(std::vector<Node>& v){
         std::srand((unsigned int) std::time(0));
         int r = i + std::rand() % (v.size()-i);
         
-        //std::iter_swap(v.begin()+i, v.begin()+r);
         swap(v[i],v[r]);
     }
 }
 
-bool mostIncoming(Node n1, Node n2){return n1.get_inj().size()>n2.get_inj().size();}
-bool mostOutgoing(Node n1, Node n2){return n1.get_adj().size()>n2.get_adj().size();}
-
+bool mostIncoming(Node n1, Node n2){
+    return n1.get_inj().size()>n2.get_inj().size();
+}
+bool mostOutgoing(Node n1, Node n2){
+    return n1.get_adj().size()>n2.get_adj().size();
+}
 void sortMostIncomingEdges(std::vector<Node>& v){
     std::sort (v.begin(), v.end(), mostIncoming);
 }
