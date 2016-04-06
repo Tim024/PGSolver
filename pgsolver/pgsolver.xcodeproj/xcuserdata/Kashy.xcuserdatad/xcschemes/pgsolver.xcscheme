@@ -64,7 +64,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "../Tests/elevator-games/elevator1_5.gm"
+            argument = "../Tests/dining-games/dining_6.plato_infinitely_often_can_eat.gm"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

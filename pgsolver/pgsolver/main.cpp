@@ -188,7 +188,7 @@ init_graph_from_file(std::string argf) {
     std::ifstream infile;
     infile.open(argf,std::ios::in);
     if (!infile.is_open()) {
-        std::cerr << "Can't open " << &infile << "!\n";
+        std::cerr << "Can't open " << "!\n";
     }
     std::string line;
     std::string first;
@@ -688,10 +688,8 @@ main(int argc, const char * argv[]) {
         std::cout << "File: " << file << std::endl;
         auto G = init_graph_from_file(file);
 
-        //int choice = choose_strategy();
-        //spm(G,choice);
-        for(int k = 1; k <= 4; k ++)
-            spm(G,k);
+        int choice = choose_strategy();
+        spm(G,choice);
         
         
     } else if (argc==3){
