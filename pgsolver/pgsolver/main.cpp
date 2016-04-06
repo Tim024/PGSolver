@@ -391,6 +391,13 @@ Measure* prog(Node& v, Node& w, std::map<int,Measure>& sig)
             bool added = false;
             int j = v.get_priority();
             Measure* m = new Measure(sig[w.get_id()]);
+            if(v.get_priority()+1 < Measure::getSize())
+        {
+            for(int i = v.get_priority()+1; i < Measure::getSize(); i++)
+            {
+                m->addAt(i, (sig[v.get_id()].getmAt(i) - m->getmAt(i)));
+            }
+        } 
             while(!added && j >= 0)
             {
                 if(m->getmAt(j) < Measure::getMax()->getmAt(j))
@@ -427,9 +434,7 @@ void lift(Node& v, std::map<int,Measure>& sig, Graph& g)
         {
             Node w = g.get(n);
             Measure* p = prog(v,w, sig);
-            if(p->get_tau())
-                sig.at(w.get_id()).set_tau(true);
-
+            
             if(p->less(*min, Measure::getSize()-1))
             {
                 min = p;
