@@ -14,6 +14,7 @@
 #include <list>
 #include <random>       // std::default_random_engine
 #include <utility>
+#include <algorithm>
 
 class Node {
 private:
@@ -373,8 +374,15 @@ Measure* prog(Node& v, Node& w, std::map<int,Measure>& sig)
   
     if(v.get_priority()%2 == 0)
     {
-
-        return new Measure(sig[w.get_id()]);
+        Measure* m = new Measure(sig[w.get_id()]);
+        if(v.get_priority()+1 < Measure::getSize())
+        {
+            for(int i = v.get_priority()+1; i < Measure::getSize(); i++)
+            {
+                m->addAt(i, (sig[v.get_id()].getmAt(i) - m->getmAt(i)));
+            }
+        } 
+        return m;
     }
     else
     {
@@ -691,10 +699,7 @@ main(int argc, const char * argv[]) {
     } else {
         std::cout << "Not enough arguments" << std::endl;
     }
-    
-    //display_graph(&G);
-    
-    
+       
     
     return 0;
 }
